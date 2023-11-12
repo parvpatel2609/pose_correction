@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request,render_template,redirect,flash,url_for
 from flask_cors import CORS, cross_origin
 import time
 
@@ -6,8 +6,20 @@ import cv2
 import mediapipe as mp
 import csv 
 import os
+from flask_mysqldb import MySQL
+
+
+
+
 
 app = Flask(__name__)
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_DB'] ='pose_estimation'
+app.config['SECRET_KEY']='mykey'
+mysql = MySQL(app=app)
+# hello
 CORS(app, support_credentials=True)
 
 def imagePoints():
@@ -158,5 +170,134 @@ def post_example():
     else:
         return 'This route only accepts POST requests.'
 
+
+@app.route('/')
+def home():
+    cur = mysql.connection.cursor()
+    cur.execute("create database if not exists `pose_estimation`")
+    mysql.connection.commit()
+
+    sql = "CREATE TABLE IF NOT EXISTS `logs`  (`Time` TIMESTAMP NOT NULL , `Username` VARCHAR(30) NOT NULL );" 
+    cur.execute(sql)
+    mysql.connection.commit()
+
+    sql = "CREATE TABLE IF NOT EXISTS `users`(`Name` VARCHAR(50) NOT NULL , `Address` VARCHAR(100) NULL DEFAULT NULL , `Email` VARCHAR(100) NULL DEFAULT NULL , `Contact` INT(20) NULL DEFAULT NULL , `Username` VARCHAR(30) NOT NULL , `Password` VARCHAR(30) NOT NULL , PRIMARY KEY (`Username`(30)))"
+
+    cur.execute(sql)
+    mysql.connection.commit()
+    cur.close()
+
+    # Take us to home
+
+    return render_template('index.html')
+
+@app.route('/signin')
+def signin():
+    return render_template('login.html')
+
+@app.route('/signup')
+def signup():
+    return render_template('register.html')
+
+
+
+@app.route('/registerRes', methods=['POST', 'GET'])
+def registration():
+    name       = request.form['name']
+    address       = request.form['address']
+    email          = request.form['email']
+    contact       = request.form['contact']
+    username       = request.form['username']
+    password       = request.form['pswd']
+
+    cur = mysql.connection.cursor()
+    
+
+
+    sql = "SELECT username, email from users"
+    cur.execute(sql)
+    x = cur.fetchall()
+    sameemail=False
+    flag=False
+    for i in x:
+        if(str(i[0]).lower()==username.lower() or str(i[1]).lower()==email.lower()):
+            if(str(i[0]).lower()==username.lower()):
+
+                flag=True
+                break
+            else:
+                sameemail=True
+                break
+        else:
+            continue
+    
+    if(sameemail):
+        flash('Email already registered!','danger')
+        return redirect(url_for('registration'))
+    elif(flag):
+        flash('Username already taken!','danger')
+        return redirect(url_for('registration'))
+    else:
+        try:
+            sql = "INSERT INTO users(Name,Address,Email,Contact,Username,Password) VALUES (%s,%s,%s,%s,%s,%s)"
+
+            cur.execute(sql,(name,address,email,contact,username,password))
+            mysql.connection.commit()
+            
+            cur.close()
+        
+        except:
+            flash("There was an error registering your email!!",'danger')
+
+    flash("Registration Success!!",category="information")
+
+    return redirect(url_for("signin"))
+
+
+
+
+@app.route('/loginRes', methods=['POST'])
+def login():
+    username       = request.form['user']
+    password       = request.form['pswd']
+
+    cur = mysql.connection.cursor()
+     
+    sql = "SELECT password from Users where username = %s"
+    
+    cur.execute(sql, (username,))
+
+    record = cur.fetchall()
+
+    if(len(record)== 0 ):
+
+        flash("User doesn't exist!  Please enter Correct Username")
+        return redirect(url_for('signin'))
+    
+    
+    if(password==record[0][0]):
+        
+        cur.execute("INSERT INTO `logs`(username) VALUES (%s)",(username,))
+        mysql.connection.commit()
+        cur.close()
+
+        
+
+    
+    elif(password != record[0][0]):
+
+        flash("Login Failed! Access Denied.")
+
+        return redirect(url_for('signin'))
+    
+
+
+    # TODO: save the registration data to a database
+
+    return redirect(url_for("home"))
+
+
+
+
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
