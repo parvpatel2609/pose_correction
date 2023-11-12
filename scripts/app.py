@@ -150,7 +150,7 @@ def post_example():
 
         imagePoints()
 
-        time.sleep(10)
+        # time.sleep(10)
 
         main()
 
