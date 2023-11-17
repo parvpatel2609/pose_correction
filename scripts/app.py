@@ -33,7 +33,7 @@ def imagePoints():
 
 
     # create capture object
-    cap = cv2.imread('S2.jpg')
+    cap = cv2.imread("S2.jpg")
     temp_file = open("temp.csv", 'w', newline='')
     writer = csv.writer(temp_file)
     # writer.writerow(['x', 'y', 'z', 'visibility'])
@@ -148,11 +148,11 @@ def main():
 
 
             # Show the frame
-            cv2.imshow("Pose Detection", image)
+            # cv2.imshow("Pose Detection", image)
 
 
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
+            # if cv2.waitKey(1) & 0xFF == ord("q"):
+            #     break
 
     # Release the VideoCapture object and close the window
     cap.release()
@@ -312,6 +312,7 @@ def login():
 cwd = os.getcwd()
 path = cwd+'/pose_correction/scripts'
 path1 = cwd+'/pose_correction/scripts/static/images'
+path2 = cwd
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -329,12 +330,15 @@ def upload():
                 flash("Upload Successful")
                 source_path = path1+"/S2.jpg"
                 destination_path = path+"/S2.jpg"
+                destination_path1 = path2+"/S2.jpg"
 
                 try:
                     # Check if the source file exists
                     if os.path.exists(source_path):
                         # Copy the file to the destination
                         shutil.copyfile(source_path, destination_path)
+                        shutil.copyfile(source_path, destination_path1)
+
                     
                 except Exception as e:
                     pass
