@@ -9,13 +9,10 @@ import os
 from flask_mysqldb import MySQL
 
 
-
-
-
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_PASSWORD'] = 'sanku@2003'
 app.config['MYSQL_DB'] ='pose_estimation'
 app.config['SECRET_KEY']='mykey'
 mysql = MySQL(app=app)
@@ -177,7 +174,7 @@ def home():
     cur.execute("create database if not exists `pose_estimation`")
     mysql.connection.commit()
 
-    sql = "CREATE TABLE IF NOT EXISTS `logs`  (`Time` TIMESTAMP NOT NULL , `Username` VARCHAR(30) NOT NULL );" 
+    sql = "CREATE TABLE IF NOT EXISTS logs  (Time TIMESTAMP NOT NULL DEFAULT current_timestamp() , Username VARCHAR(30) NOT NULL );"    
     cur.execute(sql)
     mysql.connection.commit()
 
