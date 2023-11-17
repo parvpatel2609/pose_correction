@@ -9,11 +9,26 @@
 
   <!-- custom css file link  -->
   <link rel="stylesheet" href="../static/css/index.css">
-
+  
   <title> Pose Estimation | Home Page</title>
 </head>
 <body>
-  
+  {%with messages = get_flashed_messages()%} {%if messages%} {% for message
+    in messages %}
+
+    <div class="alert alert-success alert-dismissable" role="alert">
+      {{message}}
+
+      <button 
+        type="button"
+        class="close"
+        data-dismiss="alert"
+        aria-label="close"
+      >
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    {%endfor%} {%endif%} {%endwith%}
 <header>
 
 <a href="#" class="fas fa-bars"></a>
@@ -44,7 +59,30 @@
   </div>
 </div>
 
-<div class="image"></div>
+<div class="image" >
+  <div class="upload" style="margin-top: 20px;" >
+    <center>
+      <h2>Upload an Image</h2><br>
+      <form action="/upload" method="post" enctype="multipart/form-data">
+        <label style="color:#FFC700;" for="image">Choose an image:</label>
+        <input type="file" id="image" name="image" accept="image/*">
+        <br><br>
+        <input name="upload" type="submit" value="Upload">
+        <input name="photo" type="submit" value="Take a photo"> 
+
+      </form>
+      <br><br>
+      <form action="{{url_for('camerafeed')}}" method="post">
+        <input type="submit" value="RUN Camera">
+      </form>
+      
+      
+    </center>
+    <div class="ref_image" style="background: url(&quot;../static/images/S2.jpg&quot;);"></div>
+    </div>
+</div>
+
+
 
 <div class="cursor"></div>
 
@@ -53,6 +91,10 @@
 
 <!-- jquery file cdn link  -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 
 <script>
 
