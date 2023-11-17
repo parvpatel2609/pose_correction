@@ -15,7 +15,7 @@ import shutil
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_PASSWORD'] = 'vanaja'
 app.config['MYSQL_DB'] ='pose_estimation'
 app.config['SECRET_KEY']='mykey'
 mysql = MySQL(app=app)
@@ -312,7 +312,7 @@ def login():
 cwd = os.getcwd()
 path = cwd+'/pose_correction/scripts'
 path1 = cwd+'/pose_correction/scripts/static/images'
-
+path = "../static/images"
 @app.route('/upload', methods=['POST'])
 def upload():
     try:
@@ -324,7 +324,12 @@ def upload():
                 # Save the image with a specific filename (S2.jpg in this case)
                 # image.save(os.path.join(path, 'S2.jpg'))
                 
-                image.save(os.path.join(path1, 'S2.jpg'))
+                image.save('S2.jpg')
+                image_filename = 'S2.jpg'
+                source_path = os.path.join(os.getcwd(), 'scripts', image_filename)
+                destination_folder = os.path.join(os.getcwd(), 'scripts', 'static', 'images')
+                destination_path = os.path.join(destination_folder, image_filename)
+                shutil.copy2(source_path, destination_path)
 
                 flash("Upload Successful")
                 source_path = path1+"/S2.jpg"
@@ -345,8 +350,9 @@ def upload():
         
         flash("Please provide an image to upload",category="Information")
         return redirect(url_for('home'))
-    except:
+    except Exception as e:
         #TODO write a code to take image through webcam and save it as a pose 
+        return str(e)
         return "YET TO COMPLETE THIS PART"
 
         
