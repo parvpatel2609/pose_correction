@@ -140,11 +140,36 @@
   
   .image{
     min-height: 93vh;
-    width:60vw;
+    width:53vw;
+    filter: opacity(0.8);
     background:url(../images/bg1.jpg) no-repeat;
     background-size: cover !important;
     background-position: center !important;
   }
+
+  .upload{
+    display: flexbox;
+    margin-top: 10%;
+    margin-left: 15%;
+    margin-right: 25%;
+    margin-bottom: 70%;
+    color: white;
+    /* background: #f0f0f0; */
+    
+  }
+  .ref_image{
+    display: flex;
+    min-height: 50vh;
+    margin-top: 20px;
+    margin-left: -75px;
+    padding-left: 0px;
+    width:49vw;
+    filter: opacity(1);
+    background-size: cover !important;
+    background-position: center !important;
+  }
+
+
   
   .cursor{
     height:50px;

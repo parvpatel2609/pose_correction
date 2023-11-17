@@ -1,4 +1,4 @@
-from flask import Flask, request,render_template,redirect,flash,url_for
+from flask import Flask, request,render_template,redirect,flash,url_for,Response
 from flask_cors import CORS, cross_origin
 import time
 
@@ -7,7 +7,7 @@ import mediapipe as mp
 import csv 
 import os
 from flask_mysqldb import MySQL
-
+import shutil
 
 
 
@@ -31,9 +31,10 @@ def imagePoints():
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5)
 
+
     # create capture object
     cap = cv2.imread('S2.jpg')
-    temp_file = open('temp.csv', 'w', newline='')
+    temp_file = open("temp.csv", 'w', newline='')
     writer = csv.writer(temp_file)
     # writer.writerow(['x', 'y', 'z', 'visibility'])
 
@@ -65,7 +66,7 @@ def imagePoints():
         print("Error")
     # if cv2.waitKey(1) == ord('q'):
     #     break
-        
+    
     temp_file.close()
     os.replace('temp.csv', 'landmarks.csv')
     # cap.release()
@@ -79,6 +80,8 @@ def main():
 
     # Open a video capture object
     cap = cv2.VideoCapture(0)
+    
+
 
     # Check if the webcam is opened correctly
     if not cap.isOpened():
@@ -133,9 +136,20 @@ def main():
                     drawing_styles,
                     mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=2),
                 )
+                # Convert the frame to JPEG format
+                ret, buffer = cv2.imencode('.jpg', image)
+                frame = buffer.tobytes()
+
+                # Yield the frame for the streaming response
+                yield (b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    break
+
 
             # Show the frame
             cv2.imshow("Pose Detection", image)
+
 
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
@@ -177,7 +191,7 @@ def home():
     cur.execute("create database if not exists `pose_estimation`")
     mysql.connection.commit()
 
-    sql = "CREATE TABLE IF NOT EXISTS `logs`  (`Time` TIMESTAMP NOT NULL , `Username` VARCHAR(30) NOT NULL );" 
+    sql = "CREATE TABLE IF NOT EXISTS `logs`  (`Time` TIMESTAMP NOT NULL DEFAULT current_timestamp() , `Username` VARCHAR(30) NOT NULL );" 
     cur.execute(sql)
     mysql.connection.commit()
 
@@ -203,12 +217,12 @@ def signup():
 
 @app.route('/registerRes', methods=['POST', 'GET'])
 def registration():
-    name       = request.form['name']
+    name          = request.form['name']
     address       = request.form['address']
-    email          = request.form['email']
+    email         = request.form['email']
     contact       = request.form['contact']
-    username       = request.form['username']
-    password       = request.form['pswd']
+    username      = request.form['username']
+    password      = request.form['pswd']
 
     cur = mysql.connection.cursor()
     
@@ -292,11 +306,59 @@ def login():
     
 
 
-    # TODO: save the registration data to a database
 
     return redirect(url_for("home"))
 
+cwd = os.getcwd()
+path = cwd+'/pose_correction/scripts'
+path1 = cwd+'/pose_correction/scripts/static/images'
 
+@app.route('/upload', methods=['POST'])
+def upload():
+    try:
+        request.form['upload'].lower()
+        if 'image' in request.files:
+            image = request.files['image']
+            
+            if image.filename != '':
+                # Save the image with a specific filename (S2.jpg in this case)
+                # image.save(os.path.join(path, 'S2.jpg'))
+                
+                image.save(os.path.join(path1, 'S2.jpg'))
+
+                flash("Upload Successful")
+                source_path = path1+"/S2.jpg"
+                destination_path = path+"/S2.jpg"
+
+                try:
+                    # Check if the source file exists
+                    if os.path.exists(source_path):
+                        # Copy the file to the destination
+                        shutil.copyfile(source_path, destination_path)
+                    
+                except Exception as e:
+                    pass
+                    
+
+
+                return redirect(url_for('home'))
+        
+        flash("Please provide an image to upload",category="Information")
+        return redirect(url_for('home'))
+    except:
+        #TODO write a code to take image through webcam and save it as a pose 
+        return "YET TO COMPLETE THIS PART"
+
+        
+
+@app.route('/video_feed')
+def video_feed():
+    imagePoints()
+    return Response(main(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/camera_feed',methods=["GET","POST"])
+def camerafeed():
+    return render_template("camera_feed.html")
 
 
 if __name__ == '__main__':
