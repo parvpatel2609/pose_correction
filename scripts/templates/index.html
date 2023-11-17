@@ -78,7 +78,11 @@
       
       
     </center>
-    <div class="ref_image" style="background: url(&quot;../static/images/S2.jpg&quot;);"></div>
+
+     {% if image_filename %}
+        <img src="{{ url_for('uploaded_image', filename=image_filename) }}" alt="Uploaded Image">
+    {% endif %}
+
     </div>
 </div>
 
