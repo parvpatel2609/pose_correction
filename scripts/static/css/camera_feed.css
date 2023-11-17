@@ -1,0 +1,11 @@
+.ref_image{
+    display: flex;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    width:50%;
+    filter: opacity(1);
+    background-size: cover !important;
+    background-position: center !important;
+  }
+  

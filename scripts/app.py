@@ -1,4 +1,4 @@
-from flask import Flask, request,render_template,redirect,flash,url_for
+from flask import Flask, request,render_template,redirect,flash,url_for,Response
 from flask_cors import CORS, cross_origin
 import time
 
@@ -7,6 +7,9 @@ import mediapipe as mp
 import csv 
 import os
 from flask_mysqldb import MySQL
+import shutil
+
+
 
 
 app = Flask(__name__)
@@ -28,9 +31,10 @@ def imagePoints():
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5)
 
+
     # create capture object
-    cap = cv2.imread('S2.jpg')
-    temp_file = open('temp.csv', 'w', newline='')
+    cap = cv2.imread('S2 copy.jpg')
+    temp_file = open("temp.csv", 'w', newline='')
     writer = csv.writer(temp_file)
     # writer.writerow(['x', 'y', 'z', 'visibility'])
 
@@ -58,11 +62,12 @@ def imagePoints():
 
         # close the temporary CSV file
         
-    except :
+    except Exception as e:
+        print(e)
         print("Error")
     # if cv2.waitKey(1) == ord('q'):
     #     break
-        
+    
     temp_file.close()
     os.replace('temp.csv', 'landmarks.csv')
     # cap.release()
@@ -71,6 +76,7 @@ def imagePoints():
 
 def main():
 
+    # Set up mediapipe instance
     mp_drawing = mp.solutions.drawing_utils
     mp_pose = mp.solutions.pose
 
@@ -84,14 +90,15 @@ def main():
     # Set up mediapipe drawing styles
     drawing_styles = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 
-    # Read stored landmarks from CSV
+# Read stored landmarks from CSV
     with open('landmarks.csv', mode='r') as file:
         csv_reader = csv.reader(file)
         stored_landmarks = [list(map(float, row)) for row in csv_reader]
 
-    # Initialize a list to store the Euclidean distance errors
+# Initialize a list to store the Euclidean distance errors
     euclidean_distances = []
 
+    print(stored_landmarks)
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
         while cap.isOpened():
             ret, frame = cap.read()
@@ -113,11 +120,20 @@ def main():
             if results.pose_landmarks:
                 # Compare the detected landmarks with stored landmarks
                 detected_landmarks = [(landmark.x, landmark.y, landmark.z) for landmark in results.pose_landmarks.landmark]
+        
                 for i, (stored, detected) in enumerate(zip(stored_landmarks, detected_landmarks)):
                     # Perform your comparison here
                     # Example comparison (Euclidean distance)
                     euclidean_distance = ((stored[0] - detected[0]) ** 2 + (stored[1] - detected[1]) ** 2 + (stored[2] - detected[2]) ** 2) ** 0.5
                     euclidean_distances.append(euclidean_distance)
+                    
+                    
+                    
+                    if euclidean_distance > 0.25:
+                    # Draw a box around the point
+                        x, y = int(detected[0] * image.shape[1]), int(detected[1] * image.shape[0])
+                        box_size = 10  # Define the size of the box
+                        cv2.rectangle(image, (x - box_size, y - box_size), (x + box_size, y + box_size), (0, 255, 0), 2)
 
                     # Draw the point on the image
                     cv2.circle(image, (int(detected[0] * image.shape[1]), int(detected[1] * image.shape[0])), 5, (0, 0, 255), -1)
@@ -130,9 +146,20 @@ def main():
                     drawing_styles,
                     mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=2),
                 )
+                # Convert the frame to JPEG format
+                ret, buffer = cv2.imencode('.jpg', image)
+                frame = buffer.tobytes()
+
+                # Yield the frame for the streaming response
+                yield (b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    break
+
 
             # Show the frame
             cv2.imshow("Pose Detection", image)
+
 
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
@@ -174,7 +201,7 @@ def home():
     cur.execute("create database if not exists `pose_estimation`")
     mysql.connection.commit()
 
-    sql = "CREATE TABLE IF NOT EXISTS logs  (Time TIMESTAMP NOT NULL DEFAULT current_timestamp() , Username VARCHAR(30) NOT NULL );"    
+    sql = "CREATE TABLE IF NOT EXISTS `logs`  (`Time` TIMESTAMP NOT NULL DEFAULT current_timestamp() , `Username` VARCHAR(30) NOT NULL );" 
     cur.execute(sql)
     mysql.connection.commit()
 
@@ -200,12 +227,12 @@ def signup():
 
 @app.route('/registerRes', methods=['POST', 'GET'])
 def registration():
-    name       = request.form['name']
+    name          = request.form['name']
     address       = request.form['address']
-    email          = request.form['email']
+    email         = request.form['email']
     contact       = request.form['contact']
-    username       = request.form['username']
-    password       = request.form['pswd']
+    username      = request.form['username']
+    password      = request.form['pswd']
 
     cur = mysql.connection.cursor()
     
@@ -289,11 +316,60 @@ def login():
     
 
 
-    # TODO: save the registration data to a database
 
     return redirect(url_for("home"))
 
+cwd = os.getcwd()
+path = cwd+'/pose_correction/scripts'
+path1 = cwd+'/pose_correction/scripts/static/images'
 
+@app.route('/upload', methods=['POST'])
+def upload():
+    try:
+        request.form['upload'].lower()
+        if 'image' in request.files:
+            image = request.files['image']
+            
+            if image.filename != '':
+                # Save the image with a specific filename (S2.jpg in this case)
+                # image.save(os.path.join(path, 'S2.jpg'))
+                
+                image.save(os.path.join(path1, 'S2.jpg'))
+
+                flash("Upload Successful")
+                source_path = path1+"/S2.jpg"
+                destination_path = path+"/S2.jpg"
+
+                try:
+                    # Check if the source file exists
+                    if os.path.exists(source_path):
+                        # Copy the file to the destination
+                        shutil.copyfile(source_path, destination_path)
+                    
+                except Exception as e:
+                    pass
+                    
+
+
+                return redirect(url_for('home'))
+        
+        flash("Please provide an image to upload",category="Information")
+        return redirect(url_for('home'))
+    except Exception as e:
+        #TODO write a code to take image through webcam and save it as a pose 
+        print(e)
+        return "YET TO COMPLETE THIS PART"
+
+        
+
+@app.route('/video_feed')
+def video_feed():
+    imagePoints()
+    return Response(main(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/camera_feed',methods=["GET","POST"])
+def camerafeed():
+    return render_template("camera_feed.html")
 
 
 if __name__ == '__main__':
