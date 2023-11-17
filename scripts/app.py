@@ -392,10 +392,31 @@ def upload():
         #TODO write a code to take image through webcam and save it as a pose 
         print(e)
         return "YET TO COMPLETE THIS PART"
+    
+# upload image     
 
 @app.route('/uploads/<filename>')
 def uploaded_image(filename):
     return send_from_directory(path1, filename)
+
+# get all referance image 
+
+@app.route('/all_images')
+def all_images():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT filename FROM images')
+        result = cur.fetchall()
+
+        # Extract filenames from the result
+        image_filenames = [row[0] for row in result]
+
+        return render_template('all_images.html', image_filenames=image_filenames)
+    except Exception as e:
+        # Handle exceptions
+        print(e)
+        return "An error occurred while retrieving images."
+
 
 
 @app.route('/video_feed')
