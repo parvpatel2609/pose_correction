@@ -8,8 +8,8 @@ import csv
 import os
 from flask_mysqldb import MySQL
 import shutil
-
-
+from werkzeug.utils import secure_filename
+from flask import send_from_directory
 
 
 app = Flask(__name__)
@@ -209,6 +209,17 @@ def home():
 
     cur.execute(sql)
     mysql.connection.commit()
+
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS images (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL,
+        data LONGBLOB
+    )
+    ''')
+
+    mysql.connection.commit()
+
     cur.close()
 
     # Take us to home
@@ -321,46 +332,71 @@ def login():
 
 cwd = os.getcwd()
 path = cwd+'/pose_correction/scripts'
-path1 = cwd+'/pose_correction/scripts/static/images'
+path1 = cwd+'/static/uploads'
 
 @app.route('/upload', methods=['POST'])
 def upload():
     try:
-        request.form['upload'].lower()
-        if 'image' in request.files:
-            image = request.files['image']
+        # request.form['upload'].lower()
+        # if 'image' in request.files:
+        #     image = request.files['image']
             
-            if image.filename != '':
-                # Save the image with a specific filename (S2.jpg in this case)
-                # image.save(os.path.join(path, 'S2.jpg'))
+        #     if image.filename != '':
+        #         # Save the image with a specific filename (S2.jpg in this case)
+        #         # image.save(os.path.join(path, 'S2.jpg'))
                 
-                image.save(os.path.join(path1, 'S2.jpg'))
+        #         image.save(os.path.join(path1, 'S2.jpg'))
 
-                flash("Upload Successful")
-                source_path = path1+"/S2.jpg"
-                destination_path = path+"/S2.jpg"
+        #         flash("Upload Successful")
+        #         source_path = path1+"/S2.jpg"
+        #         destination_path = path+"/S2.jpg"
 
-                try:
-                    # Check if the source file exists
-                    if os.path.exists(source_path):
-                        # Copy the file to the destination
-                        shutil.copyfile(source_path, destination_path)
+        #         try:
+        #             # Check if the source file exists
+        #             if os.path.exists(source_path):
+        #                 # Copy the file to the destination
+        #                 shutil.copyfile(source_path, destination_path)
                     
-                except Exception as e:
-                    pass
+        #         except Exception as e:
+        #             pass
                     
 
 
-                return redirect(url_for('home'))
+        #         return redirect(url_for('home'))
         
-        flash("Please provide an image to upload",category="Information")
-        return redirect(url_for('home'))
+        # flash("Please provide an image to upload",category="Information")
+
+        cur = mysql.connection.cursor()
+
+        if 'image' not in request.files:
+            return redirect(request.url)
+
+        file = request.files['image']
+
+        if file.filename == '':
+            return redirect(request.url)
+
+        if file:
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(path1, filename)
+            file.save(file_path)
+
+            # Insert the file information into the MySQL database, including the binary data
+            cur.execute('INSERT INTO images (filename, data) VALUES (%s, %s)', (filename, file.read()))
+            mysql.connection.commit()
+            # Read the binary data of the file
+
+        return render_template('index.html', image_filename=filename)
+
     except Exception as e:
         #TODO write a code to take image through webcam and save it as a pose 
         print(e)
         return "YET TO COMPLETE THIS PART"
 
-        
+@app.route('/uploads/<filename>')
+def uploaded_image(filename):
+    return send_from_directory(path1, filename)
+
 
 @app.route('/video_feed')
 def video_feed():
