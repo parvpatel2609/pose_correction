@@ -326,7 +326,7 @@ def upload():
                 
                 image.save('S2.jpg')
                 image_filename = 'S2.jpg'
-                source_path = os.path.join(os.getcwd(), 'scripts', image_filename)
+                source_path = os.path.join(os.getcwd(), image_filename)
                 destination_folder = os.path.join(os.getcwd(), 'scripts', 'static', 'images')
                 destination_path = os.path.join(destination_folder, image_filename)
                 shutil.copy2(source_path, destination_path)
@@ -366,6 +366,10 @@ def video_feed():
 def camerafeed():
     return render_template("camera_feed.html")
 
+
+@app.route('/userdash')
+def userdash():
+    return render_template("userdash.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
