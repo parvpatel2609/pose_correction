@@ -15,7 +15,7 @@ from flask import send_from_directory
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'sanku@2003'
+app.config['MYSQL_PASSWORD'] = ''
 app.config['MYSQL_DB'] ='pose_estimation'
 app.config['SECRET_KEY']='mykey'
 mysql = MySQL(app=app)
@@ -334,7 +334,7 @@ cwd = os.getcwd()
 path = cwd+'/pose_correction/scripts'
 path1 = cwd+'/static/uploads'
 
-@app.route('/upload', methods=['POST'])
+@app.route('/upload', methods=['GET','POST'])
 def upload():
     try:
         # request.form['upload'].lower()
@@ -369,12 +369,22 @@ def upload():
         cur = mysql.connection.cursor()
 
         if 'image' not in request.files:
-            return redirect(request.url)
-
+            flash("Please provide an image to upload",category="Information")
+            return redirect(url_for('home'))
         file = request.files['image']
 
         if file.filename == '':
-            return redirect(request.url)
+            
+            s = '''
+            <body style="padding-top: 15rem;">
+            <h1 style="color: yellow; text-decoration: dashed;
+              text-align: center;
+                font-family: cursive;
+                    ">
+                 YET TO BE CONFIGURED</h1>
+            </body>                              '''
+            return s
+        
 
         if file:
             filename = secure_filename(file.filename)

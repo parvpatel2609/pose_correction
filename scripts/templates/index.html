@@ -80,7 +80,7 @@
     </center>
 
      {% if image_filename %}
-        <img src="{{ url_for('uploaded_image', filename=image_filename) }}" alt="Uploaded Image">
+        <img class="ref_image" src="{{ url_for('uploaded_image', filename=image_filename) }}" alt="Uploaded Image">
     {% endif %}
 
     </div>
