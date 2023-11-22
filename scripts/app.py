@@ -14,19 +14,23 @@ from flask_mysqldb import MySQL
 import shutil
 from werkzeug.utils import secure_filename
 from flask import send_from_directory
-
+import math
 
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'vanaja'
+app.config['MYSQL_PASSWORD'] = 'sanku@2003'
+
 app.config['MYSQL_DB'] ='pose_estimation'
 app.config['SECRET_KEY']='mykey'
 mysql = MySQL(app=app)
 # hello
 CORS(app, support_credentials=True)
 
-def imagePoints():
+cwd = os.getcwd()
+path1 = cwd+'/static/refImages'
+
+def imagePoints(filename, username):
 
     mp_drawing = mp.solutions.drawing_utils
     mp_pose = mp.solutions.pose
@@ -35,9 +39,10 @@ def imagePoints():
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5)
 
+    print("filename2 : "+filename)
 
     # create capture object
-    cap = cv2.imread('S2 copy.jpg')
+    cap = cv2.imread(path1+"/"+username+"/"+filename);
     temp_file = open("temp.csv", 'w', newline='')
     writer = csv.writer(temp_file)
     # writer.writerow(['x', 'y', 'z', 'visibility'])
@@ -80,6 +85,32 @@ def imagePoints():
 
 def main():
 
+    marker = {
+    'face': [x for x in range(1, 11)],
+    'Right shoulder': [12],
+    'Left shoulder': [11],
+    'Right Feet': [28, 30, 32],
+    'Left Feet': [27, 29, 31],
+    'Right knee': [26],
+    'Left Knee': [25],
+    'Left Arm': [13],
+    'Right Arm': [14],
+    'Left Wrist': [15, 17, 19, 21],
+    'Right Wrist': [16, 18, 20, 22]
+    }
+
+# Function to calculate Euclidean distance between two 3D points
+    def euclidean_distance_3d(point1, point2):
+        return math.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2 + (point1[2] - point2[2]) ** 2)
+
+    # Function to calculate distance between two landmarks representing height
+    def calculate_height(landmark1, landmark2):
+        return euclidean_distance_3d(landmark1, landmark2)
+
+    # Function to calculate distance between two landmarks representing width
+    def calculate_width(landmark1, landmark2):
+        return euclidean_distance_3d(landmark1, landmark2)
+
     # Set up mediapipe instance
     mp_drawing = mp.solutions.drawing_utils
     mp_pose = mp.solutions.pose
@@ -94,12 +125,12 @@ def main():
     # Set up mediapipe drawing styles
     drawing_styles = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 
-# Read stored landmarks from CSV
+    # Read stored landmarks from CSV
     with open('landmarks.csv', mode='r') as file:
         csv_reader = csv.reader(file)
         stored_landmarks = [list(map(float, row)) for row in csv_reader]
 
-# Initialize a list to store the Euclidean distance errors
+    # Initialize a list to store the Euclidean distance errors
     euclidean_distances = []
 
     print(stored_landmarks)
@@ -124,24 +155,66 @@ def main():
             if results.pose_landmarks:
                 # Compare the detected landmarks with stored landmarks
                 detected_landmarks = [(landmark.x, landmark.y, landmark.z) for landmark in results.pose_landmarks.landmark]
-        
+
+                # Calculate height and width
+                shoulder_width = calculate_width(detected_landmarks[11], detected_landmarks[12])
+                person_height = calculate_height(detected_landmarks[11], detected_landmarks[24])
+
                 for i, (stored, detected) in enumerate(zip(stored_landmarks, detected_landmarks)):
                     # Perform your comparison here
                     # Example comparison (Euclidean distance)
-                    euclidean_distance = ((stored[0] - detected[0]) ** 2 + (stored[1] - detected[1]) ** 2 + (stored[2] - detected[2]) ** 2) ** 0.5
+                    euclidean_distance = ((stored[0] - detected[0]) ** 2 + (stored[1] - detected[1]) ** 2 + (
+                                stored[2] - detected[2]) ** 2) ** 0.5
                     euclidean_distances.append(euclidean_distance)
-                    
-                    
-                    
-                    if euclidean_distance > 0.25:
-                    # Draw a box around the point
-                        x, y = int(detected[0] * image.shape[1]), int(detected[1] * image.shape[0])
-                        box_size = 10  # Define the size of the box
-                        cv2.rectangle(image, (x - box_size, y - box_size), (x + box_size, y + box_size), (0, 255, 0), 2)
 
-                    # Draw the point on the image
-                    cv2.circle(image, (int(detected[0] * image.shape[1]), int(detected[1] * image.shape[0])), 5, (0, 0, 255), -1)
-                    cv2.putText(image, f'{i}: {euclidean_distance:.2f}', (int(detected[0] * image.shape[1]) + 10, int(detected[1] * image.shape[0])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+                    # Compare height and suggest adjustments
+                    if i == 11:  # Left shoulder landmark index
+                        height_difference = abs(stored[1] - detected[1])
+                        if height_difference > 0.1:  # Adjust the threshold as needed
+                            suggestion += f" Adjust your height: Move your shoulders up or down."
+
+                    # Compare width and suggest adjustments
+                    if i == 11 or i == 12:  # Left and right shoulder landmark indices
+                        width_difference = abs(stored[0] - detected[0])
+                        if width_difference > 0.1:  # Adjust the threshold as needed
+                            suggestion += f" Adjust your width: Widen or narrow your shoulders."
+
+                    # Suggest corrections based on significant differences
+                    if euclidean_distance > 0.2:
+                        body_part = None
+                        for part, indices in marker.items():
+                            if i in indices:
+                                body_part = part
+                                break
+
+                        if body_part:
+                            # Suggestion for adjusting the pose
+                            suggestion = f"Suggestion for {body_part}:"
+
+                            # Analyze the difference in coordinates
+                            for coord_type, (stored_coord, detected_coord) in zip(['x', 'y', 'z'], zip(stored, detected)):
+                                diff = stored_coord - detected_coord
+                                if diff > 0:
+                                    suggestion += f" Move your {body_part} to the right."
+                                elif diff < 0:
+                                    suggestion += f" Move your {body_part} to the left."
+                                else:
+                                    suggestion += f" Keep your {body_part} position."
+
+                            print(suggestion)
+
+                        # Draw a box around the point if error is more than 0.2
+                        if euclidean_distance > 0.2:
+                            x, y = int(detected[0] * image.shape[1]), int(detected[1] * image.shape[0])
+                            box_size = 10  # Define the size of the box
+                            cv2.rectangle(image, (x - box_size, y - box_size), (x + box_size, y + box_size), (255, 0, 0), 2)
+
+                        # Draw the point on the image
+                        cv2.circle(image, (int(detected[0] * image.shape[1]), int(detected[1] * image.shape[0])), 5,
+                                (0, 0, 255), -1)
+                        cv2.putText(image, f'{i}: {euclidean_distance:.2f}',
+                                    (int(detected[0] * image.shape[1]) + 10, int(detected[1] * image.shape[0])),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
 
                 mp_drawing.draw_landmarks(
                     image,
@@ -162,11 +235,11 @@ def main():
 
 
             # Show the frame
-            cv2.imshow("Pose Detection", image)
+            # cv2.imshow("Pose Detection", image)
 
 
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
+            # if cv2.waitKey(1) & 0xFF == ord("q"):
+            #     break
 
     # Release the VideoCapture object and close the window
     cap.release()
@@ -361,33 +434,48 @@ def upload(username):
         cur = mysql.connection.cursor()
 
         if 'image' not in request.files:
-            return redirect(request.url)
-
+            flash("Please provide an image to upload",category="Information")
+            return redirect(url_for('home'))
         file = request.files['image']
 
         if file.filename == '':
-            return redirect(request.url)
+            
+            s = '''
+            <body style="padding-top: 15rem;">
+            <h1 style="color: yellow; text-decoration: dashed;
+              text-align: center;
+                font-family: cursive;
+                    ">
+                 YET TO BE CONFIGURED</h1>
+            </body>                              '''
+            return s
+        
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename);
+            
 
             # Save the file to the static/refImages folder
-            file.save(os.path.join(app.config['IMAGE_FOLDER'], filename))
+            path = os.path.join(app.config['IMAGE_FOLDER'],username)
+            os.makedirs(path, exist_ok=True)
+            file.save(os.path.join(path, filename))
 
             # Optionally, you can store information about the file in the database here
             cur = mysql.connection.cursor()
             cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
             mysql.connection.commit()
+            user = username
 
-        return jsonify({'message': 'DataUrl stored successfully'}), 200
+        return redirect(url_for('uploads',username=user))
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 # upload image     
 
-@app.route('/uploads/<filename>')
-def uploaded_image(filename):
-    return send_from_directory(path1, filename)
+@app.route('/uploads/<filename>/<username>')
+def uploaded_image(filename,username):
+    userpath = os.path.join(path1,username)
+    return send_from_directory(userpath, filename)
 
 # Capture image:
 @app.route('/capture')
@@ -429,7 +517,7 @@ def store_data():
             cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
             mysql.connection.commit()
 
-        return jsonify({'message': 'DataUrl stored successfully'}), 200
+        return redirect(url_for('uploads'),[username])
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -456,12 +544,13 @@ def all_images():
 
 @app.route('/video_feed')
 def video_feed():
-    imagePoints()
     return Response(main(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-@app.route('/camera_feed',methods=["GET","POST"])
-def camerafeed():
-    return render_template("camera_feed.html")
+@app.route('/camera_feed/<filename>/<username>',methods=["GET","POST"])
+def camerafeed(filename, username):
+    print("fileName1 :"+ filename)
+    imagePoints(filename, username)
+    return render_template("camera_feed.html", filename=filename, username=username)
 @app.route('/userdash/<string:username>')
 def userdash(username):
     return render_template('userdash.html',username=username)

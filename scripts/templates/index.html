@@ -61,7 +61,7 @@
 
 <div class="image" >
   <div class="upload" style="margin-top: 20px;" >
-    <center>
+    <!-- <center>
       <h2>Upload an Image</h2><br>
       <form action="/upload" method="post" enctype="multipart/form-data">
         <label style="color:#FFC700;" for="image">Choose an image:</label>
@@ -71,12 +71,8 @@
         <input name="photo" type="submit" value="Take a photo"> 
       </form>
       <br><br>
-      <form action="{{url_for('camerafeed')}}" method="post">
-        <input type="submit" value="RUN Camera">
-      </form>
       
-      
-    </center>
+    </center> -->
 
      {% if image_filename %}
         <img src="{{ url_for('uploaded_image', filename=image_filename) }}" alt="Uploaded Image" height="500" width="500">
