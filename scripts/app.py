@@ -19,14 +19,17 @@ from flask import send_from_directory
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'vanaja'
+app.config['MYSQL_PASSWORD'] = 'sanku@2003'
 app.config['MYSQL_DB'] ='pose_estimation'
 app.config['SECRET_KEY']='mykey'
 mysql = MySQL(app=app)
 # hello
 CORS(app, support_credentials=True)
 
-def imagePoints():
+cwd = os.getcwd()
+path1 = cwd+'/static/refImages'
+
+def imagePoints(filename, username):
 
     mp_drawing = mp.solutions.drawing_utils
     mp_pose = mp.solutions.pose
@@ -35,9 +38,10 @@ def imagePoints():
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5)
 
+    print("filename2 : "+filename)
 
     # create capture object
-    cap = cv2.imread('S2 copy.jpg')
+    cap = cv2.imread(path1+"/"+filename);
     temp_file = open("temp.csv", 'w', newline='')
     writer = csv.writer(temp_file)
     # writer.writerow(['x', 'y', 'z', 'visibility'])
@@ -456,12 +460,13 @@ def all_images():
 
 @app.route('/video_feed')
 def video_feed():
-    imagePoints()
     return Response(main(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-@app.route('/camera_feed',methods=["GET","POST"])
-def camerafeed():
-    return render_template("camera_feed.html")
+@app.route('/camera_feed/<filename>/<username>',methods=["GET","POST"])
+def camerafeed(filename, username):
+    print("fileName1 :"+ filename)
+    imagePoints(filename, username)
+    return render_template("camera_feed.html", filename=filename, username=username)
 @app.route('/userdash/<string:username>')
 def userdash(username):
     return render_template('userdash.html',username=username)

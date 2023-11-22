@@ -62,46 +62,53 @@
           </tr>
         </thead>
         <tbody>
-            {% for filename in image_filenames %}
+          {% for filename in image_filenames %}
           <tr>
             <td>
-            <img
-                src="{{ url_for('uploaded_image', filename=filename) }}"
-                alt="{{ filename }}"
-                width="500"
-                height="500"
-            />
+              <a href="/camera_feed/{{filename}}/{{username}}">
+                <img
+                  src="{{ url_for('uploaded_image', filename=filename) }}"
+                  alt="{{ filename }}"
+                  width="500"
+                  height="500"
+                />
+              </a>
             </td>
-        
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    <br>
-    <br>
-    <div class="image" >
-        <div class="upload" style="margin-top: 20px;" >
-          <center>
-            <h2>Upload an Image</h2><br>
-            <form action="/upload/{{username}}" method="post" enctype="multipart/form-data">
-              <label style="color:#FFC700;" for="image">Choose an image:</label>
-              <input type="file" id="image" name="image" accept="image/*">
-              <br><br>
-              <input name="upload" type="submit" value="Upload">
-              <input name="photo" type="submit" value="Take a photo"> 
-            </form>
-            
-            
-            
-          </center>
-      
-           {% if image_filename %}
-              <img src="{{ url_for('uploaded_image', filename=image_filename) }}" alt="Uploaded Image" height="500" width="500">
-          {% endif %}
-      
-          </div>
+    <br />
+    <br />
+    <div class="image">
+      <div class="upload" style="margin-top: 20px">
+        <center>
+          <h2>Upload an Image</h2>
+          <br />
+          <form
+            action="/upload/{{username}}"
+            method="post"
+            enctype="multipart/form-data"
+          >
+            <label style="color: #ffc700" for="image">Choose an image:</label>
+            <input type="file" id="image" name="image" accept="image/*" />
+            <br /><br />
+            <input name="upload" type="submit" value="Upload" />
+            <input name="photo" type="submit" value="Take a photo" />
+          </form>
+        </center>
+
+        {% if image_filename %}
+        <img
+          src="{{ url_for('uploaded_image', filename=image_filename) }}"
+          alt="Uploaded Image"
+          height="500"
+          width="500"
+        />
+        {% endif %}
       </div>
+    </div>
   </body>
 </html>
 
