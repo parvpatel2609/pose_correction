@@ -61,7 +61,7 @@
 
 <div class="image" >
   <div class="upload" style="margin-top: 20px;" >
-    <center>
+    <!-- <center>
       <h2>Upload an Image</h2><br>
       <form action="/upload" method="post" enctype="multipart/form-data">
         <label style="color:#FFC700;" for="image">Choose an image:</label>
@@ -72,14 +72,10 @@
       </form>
       <br><br>
       
-    </center>
+    </center> -->
 
      {% if image_filename %}
-<<<<<<< HEAD
-        <img class="ref_image" src="{{ url_for('uploaded_image', filename=image_filename) }}" alt="Uploaded Image">
-=======
         <img src="{{ url_for('uploaded_image', filename=image_filename) }}" alt="Uploaded Image" height="500" width="500">
->>>>>>> bc5d8c82719b5539fb9b02dac93438e6c7001808
     {% endif %}
 
     </div>
