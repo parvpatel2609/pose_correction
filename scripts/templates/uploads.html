@@ -67,7 +67,7 @@
             <td>
               <a href="/camera_feed/{{filename}}/{{username}}">
                 <img
-                  src="{{ url_for('uploaded_image', filename=filename) }}"
+                  src="{{ url_for('uploaded_image', filename=filename, username=username) }}"
                   alt="{{ filename }}"
                   width="500"
                   height="500"

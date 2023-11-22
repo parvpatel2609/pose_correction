@@ -20,6 +20,7 @@ app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'sanku@2003'
+
 app.config['MYSQL_DB'] ='pose_estimation'
 app.config['SECRET_KEY']='mykey'
 mysql = MySQL(app=app)
@@ -41,7 +42,7 @@ def imagePoints(filename, username):
     print("filename2 : "+filename)
 
     # create capture object
-    cap = cv2.imread(path1+"/"+filename);
+    cap = cv2.imread(path1+"/"+username+"/"+filename);
     temp_file = open("temp.csv", 'w', newline='')
     writer = csv.writer(temp_file)
     # writer.writerow(['x', 'y', 'z', 'visibility'])
@@ -166,11 +167,11 @@ def main():
 
 
             # Show the frame
-            cv2.imshow("Pose Detection", image)
+            # cv2.imshow("Pose Detection", image)
 
 
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
+            # if cv2.waitKey(1) & 0xFF == ord("q"):
+            #     break
 
     # Release the VideoCapture object and close the window
     cap.release()
@@ -365,33 +366,48 @@ def upload(username):
         cur = mysql.connection.cursor()
 
         if 'image' not in request.files:
-            return redirect(request.url)
-
+            flash("Please provide an image to upload",category="Information")
+            return redirect(url_for('home'))
         file = request.files['image']
 
         if file.filename == '':
-            return redirect(request.url)
+            
+            s = '''
+            <body style="padding-top: 15rem;">
+            <h1 style="color: yellow; text-decoration: dashed;
+              text-align: center;
+                font-family: cursive;
+                    ">
+                 YET TO BE CONFIGURED</h1>
+            </body>                              '''
+            return s
+        
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename);
+            
 
             # Save the file to the static/refImages folder
-            file.save(os.path.join(app.config['IMAGE_FOLDER'], filename))
+            path = os.path.join(app.config['IMAGE_FOLDER'],username)
+            os.makedirs(path, exist_ok=True)
+            file.save(os.path.join(path, filename))
 
             # Optionally, you can store information about the file in the database here
             cur = mysql.connection.cursor()
             cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
             mysql.connection.commit()
+            user = username
 
-        return jsonify({'message': 'DataUrl stored successfully'}), 200
+        return redirect(url_for('uploads',username=user))
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 # upload image     
 
-@app.route('/uploads/<filename>')
-def uploaded_image(filename):
-    return send_from_directory(path1, filename)
+@app.route('/uploads/<filename>/<username>')
+def uploaded_image(filename,username):
+    userpath = os.path.join(path1,username)
+    return send_from_directory(userpath, filename)
 
 # Capture image:
 @app.route('/capture')
@@ -433,7 +449,7 @@ def store_data():
             cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
             mysql.connection.commit()
 
-        return jsonify({'message': 'DataUrl stored successfully'}), 200
+        return redirect(url_for('uploads'),[username])
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
