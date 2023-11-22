@@ -19,12 +19,11 @@ import math
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'sanku@2003'
+app.config['MYSQL_PASSWORD'] = ''
 
 app.config['MYSQL_DB'] ='pose_estimation'
 app.config['SECRET_KEY']='mykey'
 mysql = MySQL(app=app)
-# hello
 CORS(app, support_credentials=True)
 
 cwd = os.getcwd()
@@ -298,9 +297,9 @@ def home():
 
     cur.execute('''
     CREATE TABLE IF NOT EXISTS userImage (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id INT AUTO_INCREMENT UNIQUE,
         filename VARCHAR(255) NOT NULL,
-        Username VARCHAR(30) NOT NULL
+        Username VARCHAR(30) NOT NULL ,PRIMARY KEY(Username,filename)
     );
     ''')
 
@@ -359,16 +358,17 @@ def registration():
         flash('Username already taken!','danger')
         return redirect(url_for('registration'))
     else:
-    # try:
-        sql = "INSERT INTO users(Name,Address,Email,Contact,Username,Password) VALUES (%s,%s,%s,%s,%s,%s)"
+        try:
+            sql = "INSERT INTO users(Name,Address,Email,Contact,Username,Password) VALUES (%s,%s,%s,%s,%s,%s)"
 
-        cur.execute(sql,(name,address,email,contact,username,password))
-        mysql.connection.commit()
+            cur.execute(sql,(name,address,email,contact,username,password))
+            mysql.connection.commit()
+            
+            cur.close()
         
-        cur.close()
-    
-    # except:
-        flash("There was an error registering your email!!",'danger')
+        except Exception as e:
+            return str(e)
+            flash("There was an error registering your email!!",'danger')
 
     flash("Registration Success!!",category="information")
 
@@ -450,6 +450,8 @@ def upload(username):
             </body>                              '''
             return s
         
+        
+        
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename);
@@ -462,11 +464,15 @@ def upload(username):
 
             # Optionally, you can store information about the file in the database here
             cur = mysql.connection.cursor()
-            cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
+            try:
+                cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
+            except:
+                flash("This file has already been uploaded! : Change image name or use another image :)")
             mysql.connection.commit()
             user = username
 
         return redirect(url_for('uploads',username=user))
+    
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

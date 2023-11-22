@@ -66,11 +66,10 @@
           <tr>
             <td>
               <a href="/camera_feed/{{filename}}/{{username}}">
-                <img
+                <img style="height:100%; width:100%;"
                   src="{{ url_for('uploaded_image', filename=filename, username=username) }}"
                   alt="{{ filename }}"
-                  width="500"
-                  height="500"
+                  
                 />
               </a>
             </td>
