@@ -1,7 +1,6 @@
 from flask import Flask, request,render_template,redirect,flash,url_for,Response, jsonify
 from flask_cors import CORS, cross_origin
 import time
-
 import base64
 from PIL import Image
 from io import BytesIO
@@ -439,16 +438,10 @@ def upload(username):
         file = request.files['image']
 
         if file.filename == '':
+            user = username
             
-            s = '''
-            <body style="padding-top: 15rem;">
-            <h1 style="color: yellow; text-decoration: dashed;
-              text-align: center;
-                font-family: cursive;
-                    ">
-                 YET TO BE CONFIGURED</h1>
-            </body>                              '''
-            return s
+            flash("Please provide an image to be uploaded")            
+            return redirect(url_for('uploads',username=user))
         
         
         
