@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title> Dashboard</title>
+    <title>{{username.capitalize()}}'s Dashboard</title>
 
     <!-- Montserrat Font -->
     <link
@@ -69,7 +69,7 @@
         <div class="sidebar-title">
           <div class="sidebar-brand">
             
-    
+            {{username.capitalize()}}'s
             Dashboard
           </div>
           <span class="material-icons-outlined" onclick="closeSidebar()"
@@ -85,14 +85,14 @@
           </li>
           <li class="sidebar-list-item">
             <a href="" >
-               My Donations
+               Compare
             </a>
           </li>
 
 
           <li class="sidebar-list-item">
-            <a href="" >
-              Add a new Donation
+            <a href="/uploaded/{{username}}" >
+              Upload A Image
             </a>
           </li>
           <li class="sidebar-list-item">

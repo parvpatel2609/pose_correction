@@ -1,0 +1,108 @@
+{% extends 'userdash.html' %} {% block main %}
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Uploads | Dashboard</title>
+    <style>
+      /* Styling for the page */
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #e8e5e5;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        width: 100%;
+        margin: 0 auto;
+        padding: 90px;
+        padding-top: 50px;
+        margin: 60px;
+        margin-right: 600px;
+        margin-left: 120px;
+        margin-bottom: 250px;
+        margin-top: 60px;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 30px 20px 10px rgba(0, 0, 0, 0.1);
+        /* min-width: 100%; */
+        align-self: center;
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+      }
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Uploads</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>Images</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for filename in image_filenames %}
+          <tr>
+            <td>
+            <img
+                src="{{ url_for('uploaded_image', filename=filename) }}"
+                alt="{{ filename }}"
+                width="500"
+                height="500"
+            />
+            </td>
+        
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <br>
+    <br>
+    <div class="image" >
+        <div class="upload" style="margin-top: 20px;" >
+          <center>
+            <h2>Upload an Image</h2><br>
+            <form action="/upload/{{username}}" method="post" enctype="multipart/form-data">
+              <label style="color:#FFC700;" for="image">Choose an image:</label>
+              <input type="file" id="image" name="image" accept="image/*">
+              <br><br>
+              <input name="upload" type="submit" value="Upload">
+              <input name="photo" type="submit" value="Take a photo"> 
+            </form>
+            
+            
+            
+          </center>
+      
+           {% if image_filename %}
+              <img src="{{ url_for('uploaded_image', filename=image_filename) }}" alt="Uploaded Image" height="500" width="500">
+          {% endif %}
+      
+          </div>
+      </div>
+  </body>
+</html>
+
+{% endblock %}
