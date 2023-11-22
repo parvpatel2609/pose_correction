@@ -65,12 +65,15 @@
             {% for filename in image_filenames %}
           <tr>
             <td>
-            <img
+            <a href="">
+                <img
                 src="{{ url_for('uploaded_image', filename=filename) }}"
                 alt="{{ filename }}"
                 width="500"
                 height="500"
             />
+            </a>
+            
             </td>
         
           </tr>
