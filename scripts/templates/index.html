@@ -69,7 +69,6 @@
         <br><br>
         <input name="upload" type="submit" value="Upload">
         <input name="photo" type="submit" value="Take a photo"> 
-
       </form>
       <br><br>
       <form action="{{url_for('camerafeed')}}" method="post">
@@ -80,7 +79,11 @@
     </center>
 
      {% if image_filename %}
+<<<<<<< HEAD
         <img class="ref_image" src="{{ url_for('uploaded_image', filename=image_filename) }}" alt="Uploaded Image">
+=======
+        <img src="{{ url_for('uploaded_image', filename=image_filename) }}" alt="Uploaded Image" height="500" width="500">
+>>>>>>> bc5d8c82719b5539fb9b02dac93438e6c7001808
     {% endif %}
 
     </div>

@@ -1,6 +1,10 @@
-from flask import Flask, request,render_template,redirect,flash,url_for,Response
+from flask import Flask, request,render_template,redirect,flash,url_for,Response, jsonify
 from flask_cors import CORS, cross_origin
 import time
+
+import base64
+from PIL import Image
+from io import BytesIO
 
 import cv2
 import mediapipe as mp
@@ -206,7 +210,6 @@ def home():
     mysql.connection.commit()
 
     sql = "CREATE TABLE IF NOT EXISTS `users`(`Name` VARCHAR(50) NOT NULL , `Address` VARCHAR(100) NULL DEFAULT NULL , `Email` VARCHAR(100) NULL DEFAULT NULL , `Contact` INT(20) NULL DEFAULT NULL , `Username` VARCHAR(30) NOT NULL , `Password` VARCHAR(30) NOT NULL , PRIMARY KEY (`Username`(30)))"
-
     cur.execute(sql)
     mysql.connection.commit()
 
@@ -216,6 +219,16 @@ def home():
         filename VARCHAR(255) NOT NULL,
         data LONGBLOB
     )
+    ''')
+
+    mysql.connection.commit()
+
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS userImage (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL,
+        Username VARCHAR(30) NOT NULL
+    );
     ''')
 
     mysql.connection.commit()
@@ -289,8 +302,6 @@ def registration():
     return redirect(url_for("signin"))
 
 
-
-
 @app.route('/loginRes', methods=['POST'])
 def login():
     username       = request.form['user']
@@ -311,7 +322,6 @@ def login():
     
     
     if(password==record[0][0]):
-        
         cur.execute("INSERT INTO `logs`(username) VALUES (%s)",(username,))
         mysql.connection.commit()
         cur.close()
@@ -402,10 +412,76 @@ def upload():
         #TODO write a code to take image through webcam and save it as a pose 
         print(e)
         return "YET TO COMPLETE THIS PART"
+    
+# upload image     
 
 @app.route('/uploads/<filename>')
 def uploaded_image(filename):
     return send_from_directory(path1, filename)
+
+# Capture image:
+@app.route('/capture')
+def capture():
+    return render_template('captureImage.html')
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+STATIC_FOLDER = 'static'
+IMAGE_FOLDER = 'refImages'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+app.config['IMAGE_FOLDER'] = os.path.join(STATIC_FOLDER, IMAGE_FOLDER)
+# Ensure the refImages folder exists inside the static folder
+os.makedirs(app.config['IMAGE_FOLDER'], exist_ok=True)
+
+# route to store image in database
+@app.route('/store_data', methods=['POST'])
+def store_data():
+    try:
+        file = request.files.get('file')
+        username = request.form.get('username')
+
+        # Check if the file is present
+        if file is None or file.filename == '':
+            return jsonify({'error': 'No file uploaded'}), 400
+
+        # Check if the file has an allowed extension
+        if file and allowed_file(file.filename):
+            # Generate a secure filename
+            filename = secure_filename(username);
+
+            # Save the file to the static/refImages folder
+            file.save(os.path.join(app.config['IMAGE_FOLDER'], filename))
+
+            # Optionally, you can store information about the file in the database here
+            cur = mysql.connection.cursor()
+            cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
+            mysql.connection.commit()
+
+        return jsonify({'message': 'DataUrl stored successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# get all referance image 
+
+@app.route('/all_images')
+def all_images():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT filename FROM images')
+        result = cur.fetchall()
+
+        # Extract filenames from the result
+        image_filenames = [row[0] for row in result]
+
+        return render_template('all_images.html', image_filenames=image_filenames)
+    except Exception as e:
+        # Handle exceptions
+        print(e)
+        return "An error occurred while retrieving images."
+
 
 
 @app.route('/video_feed')
