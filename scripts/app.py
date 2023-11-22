@@ -1,6 +1,10 @@
-from flask import Flask, request,render_template,redirect,flash,url_for,Response
+from flask import Flask, request,render_template,redirect,flash,url_for,Response, jsonify
 from flask_cors import CORS, cross_origin
 import time
+
+import base64
+from PIL import Image
+from io import BytesIO
 
 import cv2
 import mediapipe as mp
@@ -8,14 +12,14 @@ import csv
 import os
 from flask_mysqldb import MySQL
 import shutil
-
-
+from werkzeug.utils import secure_filename
+from flask import send_from_directory
 
 
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'vanaja'
+app.config['MYSQL_PASSWORD'] = 'sanku@2003'
 app.config['MYSQL_DB'] ='pose_estimation'
 app.config['SECRET_KEY']='mykey'
 mysql = MySQL(app=app)
@@ -33,7 +37,7 @@ def imagePoints():
 
 
     # create capture object
-    cap = cv2.imread('S2.jpg')
+    cap = cv2.imread('S2 copy.jpg')
     temp_file = open("temp.csv", 'w', newline='')
     writer = csv.writer(temp_file)
     # writer.writerow(['x', 'y', 'z', 'visibility'])
@@ -62,7 +66,8 @@ def imagePoints():
 
         # close the temporary CSV file
         
-    except :
+    except Exception as e:
+        print(e)
         print("Error")
     # if cv2.waitKey(1) == ord('q'):
     #     break
@@ -75,13 +80,12 @@ def imagePoints():
 
 def main():
 
+    # Set up mediapipe instance
     mp_drawing = mp.solutions.drawing_utils
     mp_pose = mp.solutions.pose
 
     # Open a video capture object
     cap = cv2.VideoCapture(0)
-    
-
 
     # Check if the webcam is opened correctly
     if not cap.isOpened():
@@ -90,14 +94,15 @@ def main():
     # Set up mediapipe drawing styles
     drawing_styles = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 
-    # Read stored landmarks from CSV
+# Read stored landmarks from CSV
     with open('landmarks.csv', mode='r') as file:
         csv_reader = csv.reader(file)
         stored_landmarks = [list(map(float, row)) for row in csv_reader]
 
-    # Initialize a list to store the Euclidean distance errors
+# Initialize a list to store the Euclidean distance errors
     euclidean_distances = []
 
+    print(stored_landmarks)
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
         while cap.isOpened():
             ret, frame = cap.read()
@@ -119,11 +124,20 @@ def main():
             if results.pose_landmarks:
                 # Compare the detected landmarks with stored landmarks
                 detected_landmarks = [(landmark.x, landmark.y, landmark.z) for landmark in results.pose_landmarks.landmark]
+        
                 for i, (stored, detected) in enumerate(zip(stored_landmarks, detected_landmarks)):
                     # Perform your comparison here
                     # Example comparison (Euclidean distance)
                     euclidean_distance = ((stored[0] - detected[0]) ** 2 + (stored[1] - detected[1]) ** 2 + (stored[2] - detected[2]) ** 2) ** 0.5
                     euclidean_distances.append(euclidean_distance)
+                    
+                    
+                    
+                    if euclidean_distance > 0.25:
+                    # Draw a box around the point
+                        x, y = int(detected[0] * image.shape[1]), int(detected[1] * image.shape[0])
+                        box_size = 10  # Define the size of the box
+                        cv2.rectangle(image, (x - box_size, y - box_size), (x + box_size, y + box_size), (0, 255, 0), 2)
 
                     # Draw the point on the image
                     cv2.circle(image, (int(detected[0] * image.shape[1]), int(detected[1] * image.shape[0])), 5, (0, 0, 255), -1)
@@ -176,7 +190,7 @@ def post_example():
 
         imagePoints()
 
-        time.sleep(10)
+        # time.sleep(10)
 
         main()
 
@@ -196,9 +210,29 @@ def home():
     mysql.connection.commit()
 
     sql = "CREATE TABLE IF NOT EXISTS `users`(`Name` VARCHAR(50) NOT NULL , `Address` VARCHAR(100) NULL DEFAULT NULL , `Email` VARCHAR(100) NULL DEFAULT NULL , `Contact` INT(20) NULL DEFAULT NULL , `Username` VARCHAR(30) NOT NULL , `Password` VARCHAR(30) NOT NULL , PRIMARY KEY (`Username`(30)))"
-
     cur.execute(sql)
     mysql.connection.commit()
+
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS images (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL,
+        data LONGBLOB
+    )
+    ''')
+
+    mysql.connection.commit()
+
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS userImage (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL,
+        Username VARCHAR(30) NOT NULL
+    );
+    ''')
+
+    mysql.connection.commit()
+
     cur.close()
 
     # Take us to home
@@ -268,8 +302,6 @@ def registration():
     return redirect(url_for("signin"))
 
 
-
-
 @app.route('/loginRes', methods=['POST'])
 def login():
     username       = request.form['user']
@@ -290,7 +322,6 @@ def login():
     
     
     if(password==record[0][0]):
-        
         cur.execute("INSERT INTO `logs`(username) VALUES (%s)",(username,))
         mysql.connection.commit()
         cur.close()
@@ -311,51 +342,137 @@ def login():
 
 cwd = os.getcwd()
 path = cwd+'/pose_correction/scripts'
-path1 = cwd+'/pose_correction/scripts/static/images'
-path = "../static/images"
+path1 = cwd+'/static/uploads'
+
 @app.route('/upload', methods=['POST'])
 def upload():
     try:
-        request.form['upload'].lower()
-        if 'image' in request.files:
-            image = request.files['image']
+        # request.form['upload'].lower()
+        # if 'image' in request.files:
+        #     image = request.files['image']
             
-            if image.filename != '':
-                # Save the image with a specific filename (S2.jpg in this case)
-                # image.save(os.path.join(path, 'S2.jpg'))
+        #     if image.filename != '':
+        #         # Save the image with a specific filename (S2.jpg in this case)
+        #         # image.save(os.path.join(path, 'S2.jpg'))
                 
-                image.save('S2.jpg')
-                image_filename = 'S2.jpg'
-                source_path = os.path.join(os.getcwd(), image_filename)
-                destination_folder = os.path.join(os.getcwd(), 'scripts', 'static', 'images')
-                destination_path = os.path.join(destination_folder, image_filename)
-                shutil.copy2(source_path, destination_path)
+        #         image.save(os.path.join(path1, 'S2.jpg'))
 
-                flash("Upload Successful")
-                source_path = path1+"/S2.jpg"
-                destination_path = path+"/S2.jpg"
+        #         flash("Upload Successful")
+        #         source_path = path1+"/S2.jpg"
+        #         destination_path = path+"/S2.jpg"
 
-                try:
-                    # Check if the source file exists
-                    if os.path.exists(source_path):
-                        # Copy the file to the destination
-                        shutil.copyfile(source_path, destination_path)
+        #         try:
+        #             # Check if the source file exists
+        #             if os.path.exists(source_path):
+        #                 # Copy the file to the destination
+        #                 shutil.copyfile(source_path, destination_path)
                     
-                except Exception as e:
-                    pass
+        #         except Exception as e:
+        #             pass
                     
 
 
-                return redirect(url_for('home'))
+        #         return redirect(url_for('home'))
         
-        flash("Please provide an image to upload",category="Information")
-        return redirect(url_for('home'))
+        # flash("Please provide an image to upload",category="Information")
+
+        cur = mysql.connection.cursor()
+
+        if 'image' not in request.files:
+            return redirect(request.url)
+
+        file = request.files['image']
+
+        if file.filename == '':
+            return redirect(request.url)
+
+        if file:
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(path1, filename)
+            file.save(file_path)
+
+            # Insert the file information into the MySQL database, including the binary data
+            cur.execute('INSERT INTO images (filename, data) VALUES (%s, %s)', (filename, file.read()))
+            mysql.connection.commit()
+            # Read the binary data of the file
+
+        return render_template('index.html', image_filename=filename)
+
     except Exception as e:
         #TODO write a code to take image through webcam and save it as a pose 
-        return str(e)
+        print(e)
         return "YET TO COMPLETE THIS PART"
+    
+# upload image     
 
-        
+@app.route('/uploads/<filename>')
+def uploaded_image(filename):
+    return send_from_directory(path1, filename)
+
+# Capture image:
+@app.route('/capture')
+def capture():
+    return render_template('captureImage.html')
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+STATIC_FOLDER = 'static'
+IMAGE_FOLDER = 'refImages'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+app.config['IMAGE_FOLDER'] = os.path.join(STATIC_FOLDER, IMAGE_FOLDER)
+# Ensure the refImages folder exists inside the static folder
+os.makedirs(app.config['IMAGE_FOLDER'], exist_ok=True)
+
+# route to store image in database
+@app.route('/store_data', methods=['POST'])
+def store_data():
+    try:
+        file = request.files.get('file')
+        username = request.form.get('username')
+
+        # Check if the file is present
+        if file is None or file.filename == '':
+            return jsonify({'error': 'No file uploaded'}), 400
+
+        # Check if the file has an allowed extension
+        if file and allowed_file(file.filename):
+            # Generate a secure filename
+            filename = secure_filename(username);
+
+            # Save the file to the static/refImages folder
+            file.save(os.path.join(app.config['IMAGE_FOLDER'], filename))
+
+            # Optionally, you can store information about the file in the database here
+            cur = mysql.connection.cursor()
+            cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
+            mysql.connection.commit()
+
+        return jsonify({'message': 'DataUrl stored successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# get all referance image 
+
+@app.route('/all_images')
+def all_images():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT filename FROM images')
+        result = cur.fetchall()
+
+        # Extract filenames from the result
+        image_filenames = [row[0] for row in result]
+
+        return render_template('all_images.html', image_filenames=image_filenames)
+    except Exception as e:
+        # Handle exceptions
+        print(e)
+        return "An error occurred while retrieving images."
+
+
 
 @app.route('/video_feed')
 def video_feed():

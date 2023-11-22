@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div class="video-wrap">
+      <video id="video" playsinline autoplay></video>
+    </div>
+
+    <div class="controller">
+      <button id="snap">Capture</button>
+    </div>
+
+    <canvas id="canvas" width="640" height="480"></canvas>
+
+    <script>
+      "use strict";
+
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const snap = document.getElementById("snap");
+      const errorMsgElement = document.getElementById("spanErrorMsg");
+
+      const constraints = {
+        audio: false,
+        video: {
+          width: 1280,
+          height: 720,
+        },
+      };
+
+      async function init() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          handleSuccess(stream);
+        } catch (e) {
+          errorMsgElement.innerHTML = `navigator.getUserMedia.error:${e.toString()}`;
+        }
+      }
+
+      function handleSuccess(stream) {
+        window.stream = stream;
+        video.srcObject = stream;
+      }
+
+      init();
+
+      var context = canvas.getContext("2d");
+      snap.addEventListener("click", async function () {
+        context.drawImage(video, 0, 0, 640, 480);
+        // JPEG file
+        let file = null;
+        let blob = canvas.toBlob(async function (blob) {
+          file = await new File([blob], "test.jpg", { type: "image/jpeg" });
+          sendFileToServer(file);
+        }, "image/jpeg");
+      });
+
+      function sendFileToServer(file) {
+        const formData = new FormData();
+
+        console.log(file);
+        formData.append("file", file, "test.jpg");
+        formData.append("username", localStorage.getItem("user"));
+
+        fetch("http://localhost:5000/store_data", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => console.log(data))
+          .catch((error) => console.error("Error:", error));
+      }
+    </script>
+  </body>
+</html>
