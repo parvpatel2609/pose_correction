@@ -380,24 +380,29 @@ def upload(username):
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename);
+            
 
             # Save the file to the static/refImages folder
-            file.save(os.path.join(app.config['IMAGE_FOLDER'], filename))
+            path = os.path.join(app.config['IMAGE_FOLDER'],username)
+            os.makedirs(path, exist_ok=True)
+            file.save(os.path.join(path, filename))
 
             # Optionally, you can store information about the file in the database here
             cur = mysql.connection.cursor()
             cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
             mysql.connection.commit()
+            user = username
 
-        return jsonify({'message': 'DataUrl stored successfully'}), 200
+        return redirect(url_for('uploads',username=user))
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 # upload image     
 
-@app.route('/uploads/<filename>')
-def uploaded_image(filename):
-    return send_from_directory(path1, filename)
+@app.route('/uploads/<filename>/<username>')
+def uploaded_image(filename,username):
+    userpath = os.path.join(path1,username)
+    return send_from_directory(userpath, filename)
 
 # Capture image:
 @app.route('/capture')
@@ -439,7 +444,7 @@ def store_data():
             cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
             mysql.connection.commit()
 
-        return jsonify({'message': 'DataUrl stored successfully'}), 200
+        return redirect(url_for('uploads'),[username])
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
