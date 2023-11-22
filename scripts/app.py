@@ -19,7 +19,7 @@ from flask import send_from_directory
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'sanku@2003'
+app.config['MYSQL_PASSWORD'] = 'vanaja'
 app.config['MYSQL_DB'] ='pose_estimation'
 app.config['SECRET_KEY']='mykey'
 mysql = MySQL(app=app)
@@ -209,7 +209,7 @@ def home():
     cur.execute(sql)
     mysql.connection.commit()
 
-    sql = "CREATE TABLE IF NOT EXISTS `users`(`Name` VARCHAR(50) NOT NULL , `Address` VARCHAR(100) NULL DEFAULT NULL , `Email` VARCHAR(100) NULL DEFAULT NULL , `Contact` INT(20) NULL DEFAULT NULL , `Username` VARCHAR(30) NOT NULL , `Password` VARCHAR(30) NOT NULL , PRIMARY KEY (`Username`(30)))"
+    sql = "CREATE TABLE IF NOT EXISTS `users`(`Name` VARCHAR(50) NOT NULL , `Address` VARCHAR(100) NULL DEFAULT NULL , `Email` VARCHAR(100)  DEFAULT NULL , `Contact` VARCHAR(20) DEFAULT NULL , `Username` VARCHAR(30) NOT NULL , `Password` VARCHAR(30) NOT NULL , PRIMARY KEY (`Username`(30)))"
     cur.execute(sql)
     mysql.connection.commit()
 
@@ -286,16 +286,16 @@ def registration():
         flash('Username already taken!','danger')
         return redirect(url_for('registration'))
     else:
-        try:
-            sql = "INSERT INTO users(Name,Address,Email,Contact,Username,Password) VALUES (%s,%s,%s,%s,%s,%s)"
+    # try:
+        sql = "INSERT INTO users(Name,Address,Email,Contact,Username,Password) VALUES (%s,%s,%s,%s,%s,%s)"
 
-            cur.execute(sql,(name,address,email,contact,username,password))
-            mysql.connection.commit()
-            
-            cur.close()
+        cur.execute(sql,(name,address,email,contact,username,password))
+        mysql.connection.commit()
         
-        except:
-            flash("There was an error registering your email!!",'danger')
+        cur.close()
+    
+    # except:
+        flash("There was an error registering your email!!",'danger')
 
     flash("Registration Success!!",category="information")
 
@@ -325,6 +325,7 @@ def login():
         cur.execute("INSERT INTO `logs`(username) VALUES (%s)",(username,))
         mysql.connection.commit()
         cur.close()
+        
 
         
 
@@ -338,43 +339,24 @@ def login():
 
 
 
-    return redirect(url_for("home"))
+    return  redirect(url_for('userdash',username=username))
 
 cwd = os.getcwd()
 path = cwd+'/pose_correction/scripts'
-path1 = cwd+'/static/uploads'
+path1 = cwd+'/static/refImages'
 
-@app.route('/upload', methods=['POST'])
-def upload():
+STATIC_FOLDER = 'static'
+IMAGE_FOLDER = 'refImages'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+app.config['IMAGE_FOLDER'] = os.path.join(STATIC_FOLDER, IMAGE_FOLDER)
+# Ensure the refImages folder exists inside the static folder
+os.makedirs(app.config['IMAGE_FOLDER'], exist_ok=True)
+
+
+@app.route('/upload/<string:username>', methods=['GET','POST'])
+def upload(username):
     try:
-        # request.form['upload'].lower()
-        # if 'image' in request.files:
-        #     image = request.files['image']
-            
-        #     if image.filename != '':
-        #         # Save the image with a specific filename (S2.jpg in this case)
-        #         # image.save(os.path.join(path, 'S2.jpg'))
-                
-        #         image.save(os.path.join(path1, 'S2.jpg'))
-
-        #         flash("Upload Successful")
-        #         source_path = path1+"/S2.jpg"
-        #         destination_path = path+"/S2.jpg"
-
-        #         try:
-        #             # Check if the source file exists
-        #             if os.path.exists(source_path):
-        #                 # Copy the file to the destination
-        #                 shutil.copyfile(source_path, destination_path)
-                    
-        #         except Exception as e:
-        #             pass
-                    
-
-
-        #         return redirect(url_for('home'))
-        
-        # flash("Please provide an image to upload",category="Information")
 
         cur = mysql.connection.cursor()
 
@@ -386,23 +368,21 @@ def upload():
         if file.filename == '':
             return redirect(request.url)
 
-        if file:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(path1, filename)
-            file.save(file_path)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename);
 
-            # Insert the file information into the MySQL database, including the binary data
-            cur.execute('INSERT INTO images (filename, data) VALUES (%s, %s)', (filename, file.read()))
+            # Save the file to the static/refImages folder
+            file.save(os.path.join(app.config['IMAGE_FOLDER'], filename))
+
+            # Optionally, you can store information about the file in the database here
+            cur = mysql.connection.cursor()
+            cur.execute("INSERT INTO userImage (Username, fileName) VALUES (%s, %s)", (username, filename))
             mysql.connection.commit()
-            # Read the binary data of the file
 
-        return render_template('index.html', image_filename=filename)
+        return jsonify({'message': 'DataUrl stored successfully'}), 200
 
     except Exception as e:
-        #TODO write a code to take image through webcam and save it as a pose 
-        print(e)
-        return "YET TO COMPLETE THIS PART"
-    
+        return jsonify({'error': str(e)}), 500
 # upload image     
 
 @app.route('/uploads/<filename>')
@@ -482,6 +462,22 @@ def video_feed():
 @app.route('/camera_feed',methods=["GET","POST"])
 def camerafeed():
     return render_template("camera_feed.html")
+@app.route('/userdash/<string:username>')
+def userdash(username):
+    return render_template('userdash.html',username=username)
+
+@app.route('/uploaded/<string:username>')
+def uploads(username):
+    
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT filename FROM userimage WHERE username = %s;",(username,))
+    record = cur.fetchall()
+    image_filenames = [row[0] for row in record]
+    cur.close()
+    return render_template('uploads.html', image_filenames=image_filenames, username=username)
+    
+    
+
 
 
 if __name__ == '__main__':
