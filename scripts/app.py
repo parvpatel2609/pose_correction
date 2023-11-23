@@ -18,7 +18,8 @@ import math
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_PASSWORD'] = 'sanku@W2003'
+
 
 app.config['MYSQL_DB'] ='pose_estimation'
 app.config['SECRET_KEY']='mykey'
@@ -199,7 +200,7 @@ def main():
                                 else:
                                     suggestion += f" Keep your {body_part} position."
 
-                            print(suggestion)
+                            #print(suggestion)
 
                         # Draw a box around the point if error is more than 0.2
                         if euclidean_distance > 0.2:
