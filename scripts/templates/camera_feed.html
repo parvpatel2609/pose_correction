@@ -1,71 +1,22 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Camera Feed | {{username}}</title>
-    <style>
-      /* Styling for the page */
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #e8e5e5;
-        margin: 0;
-        padding: 0;
-      }
-      .container {
-        /* display: flex; */
-        width: 100%;
-        margin: 0 auto;
-        padding: 90px;
-        padding-top: 50px;
-        margin: 60px;
-        margin-right: 600px;
-        margin-left: 120px;
-        margin-bottom: 250px;
-        margin-top: 60px;
-        background-color: #fff;
-        border-radius: 5px;
-        box-shadow: 30px 20px 10px rgba(0, 0, 0, 0.1);
-        /* min-width: 100%; */
-        align-self: center;
-      }
-      h1 {
-        text-align: center;
-        color: #333;
-        margin-bottom: 20px;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      th,
-      td {
-        padding: 10px;
-        text-align: left;
-        border-bottom: 1px solid #ddd;
-      }
-      th {
-        background-color: #f2f2f2;
-        font-weight: bold;
-      }
 
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1 style="font-style: oblique; font-family: 'Courier New', Courier, monospace;color: cadetblue;">Real time camera feed</h1>
-      <table>
-        <colgroup>
-            <col span="50%">
-        </colgroup>
-        <tr>
-            <th > <img style="justify-content: center;margin-left: 1rem;height: 480px; width: 640px" src="{{ url_for('video_feed') }}" /></th>
-            <th style="justify-content: center;">
-                <img style="justify-content: center;margin-left: 25% ; height: 100%; width: 50%;" src="/../static/refImages/{{username}}/{{filename}}" alt="No Image Uploaded">
-            
-            </th>
-        </tr>   
-    </table>
+{% extends 'userdash.html' %} {% block main %}
+
+<div>
+  <colgroup>
+    <col span="50%" />
+  </colgroup>
+  <h1 class="text-center my-4">Do pose here (Camera Feeds)</h1>
+  <div class="row border border-3 border-dark mx-3">
+    <div class="col-md-6 d-flex align-items-center justify-content-center"><img src="{{ url_for('video_feed') }}" width="640" height="480" /></div>
+    <div class="col-md-6 d-flex align-items-center justify-content-center">
+      <img
+        style="justify-content: center; height: 300x; width: 400px"
+        src="/../static/refImages/{{username}}/{{filename}}"
+        alt="No Image Uploaded"
+      />
     </div>
-    
+  </div>
+</div>
 
-  </body>
-</html>
+{% endblock %}
+
