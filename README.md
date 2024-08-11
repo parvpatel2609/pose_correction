@@ -1,4 +1,4 @@
-#### Pose Correction
+### Pose Correction
 
 ## Overview
 Welcome to the Pose Estimation Platform, a project that leverages the power of MediaPipe for accurate and efficient human pose estimation. This platform is designed to provide developers and researchers with a flexible and easy-to-use tool for integrating pose estimation into their applications, projects, or research endeavors.
